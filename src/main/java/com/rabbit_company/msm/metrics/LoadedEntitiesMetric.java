@@ -5,6 +5,7 @@ import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -15,9 +16,25 @@ public class LoadedEntitiesMetric implements MetricProvider {
 
     private final ConcurrentHashMap<String, Integer> entitiesCounts = new ConcurrentHashMap<>();
 
+    private Method getEntityCountMethod = null;
+    private boolean isPaper = false;
+
     public LoadedEntitiesMetric(Plugin plugin, int interval) {
         this.plugin = plugin;
         this.interval = interval;
+
+        detectPaper();
+    }
+
+    private void detectPaper() {
+        try {
+            getEntityCountMethod = World.class.getMethod("getEntityCount");
+            isPaper = true;
+            plugin.getLogger().info("Detected Paper API - using World#getEntityCount()");
+        } catch (NoSuchMethodException ignored) {
+            isPaper = false;
+            plugin.getLogger().info("Paper API not found - falling back to getEntities().size()");
+        }
     }
 
     @Override
@@ -26,7 +43,19 @@ public class LoadedEntitiesMetric implements MetricProvider {
             entitiesCounts.clear();
 
             for (World world : Bukkit.getWorlds()) {
-                entitiesCounts.put(world.getName(), world.getEntities().size());
+                int count;
+
+                if(isPaper){
+                    try{
+                        count = (int) getEntityCountMethod.invoke(world);
+                    }catch (Exception e){
+                        count = world.getEntities().size();
+                    }
+                } else {
+                    count = world.getEntities().size();
+                }
+
+                entitiesCounts.put(world.getName(), count);
             }
         }, 0L, 20L * this.interval);
     }
