@@ -5,6 +5,7 @@ import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -15,9 +16,25 @@ public class LoadedChunksMetric implements MetricProvider {
 
     private final ConcurrentHashMap<String, Integer> worldChunkCounts = new ConcurrentHashMap<>();
 
+    private Method getChunkCountMethod = null;
+    private boolean isPaper = false;
+
     public LoadedChunksMetric(Plugin plugin, int interval) {
         this.plugin = plugin;
         this.interval = interval;
+
+        detectPaper();
+    }
+
+    private void detectPaper() {
+        try {
+            getChunkCountMethod = World.class.getMethod("getChunkCount");
+            isPaper = true;
+            plugin.getLogger().info("Detected Paper API - using World#getChunkCount()");
+        } catch (NoSuchMethodException ignored) {
+            isPaper = false;
+            plugin.getLogger().info("Paper API not found - falling back to getLoadedChunks().length");
+        }
     }
 
     @Override
@@ -26,7 +43,19 @@ public class LoadedChunksMetric implements MetricProvider {
             worldChunkCounts.clear();
 
             for (World world : Bukkit.getWorlds()) {
-                worldChunkCounts.put(world.getName(), world.getLoadedChunks().length);
+                int count;
+
+                if (isPaper) {
+                    try {
+                        count = (int) getChunkCountMethod.invoke(world);
+                    } catch (Exception e) {
+                        count = world.getLoadedChunks().length;
+                    }
+                } else {
+                    count = world.getLoadedChunks().length;
+                }
+
+                worldChunkCounts.put(world.getName(), count);
             }
         }, 0L, 20L * this.interval);
     }

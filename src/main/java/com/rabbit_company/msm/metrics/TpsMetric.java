@@ -31,13 +31,18 @@ public class TpsMetric implements MetricProvider {
     public void start() {
         collectTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             tickTimestamps.offer(System.currentTimeMillis());
-
-            while (tickTimestamps.size() > MAX_HISTORY_SIZE) {
-                tickTimestamps.poll();
-            }
         }, 1L, 1L);
 
-        calculateTask = Bukkit.getScheduler().runTaskTimer(plugin, this::calculateTPS, 100L, 20L * this.interval);
+        calculateTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            cleanupQueue();
+            calculateTPS();
+        }, 100L, 20L * this.interval);
+    }
+
+    private void cleanupQueue() {
+        while (tickTimestamps.size() > MAX_HISTORY_SIZE) {
+            tickTimestamps.poll();
+        }
     }
 
     private void calculateTPS() {
