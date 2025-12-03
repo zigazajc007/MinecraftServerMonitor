@@ -1,0 +1,14 @@
+http:
+  port: 9111
+  token: "changeme"
+
+metrics:
+  tps:
+    enabled: true
+    interval: 1
+  player_count:
+    enabled: true
+    interval: 1
+  player_ping:
+    enabled: true
+    interval: 1

@@ -1,0 +1,7 @@
+name: MinecraftServerMonitor
+version: ${project.version}
+main: com.rabbit_company.msm.MinecraftServerMonitor
+api-version: 1.13
+authors: [ RabbitCompany ]
+description: Simple web-exposed metrics endpoint (OpenMetrics) for Prometheus scraping.
+website: https://rabbit-company.com
