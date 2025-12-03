@@ -15,7 +15,7 @@ public class LoadedChunksMetric implements MetricProvider {
 
     private final ConcurrentHashMap<String, Integer> worldChunkCounts = new ConcurrentHashMap<>();
 
-    public LoadedChunksMetric(Plugin plugin, int interval){
+    public LoadedChunksMetric(Plugin plugin, int interval) {
         this.plugin = plugin;
         this.interval = interval;
     }
@@ -26,9 +26,7 @@ public class LoadedChunksMetric implements MetricProvider {
             worldChunkCounts.clear();
 
             for (World world : Bukkit.getWorlds()) {
-                String worldName = world.getName();
-                int loadedChunks = world.getLoadedChunks().length;
-                worldChunkCounts.put(worldName, loadedChunks);
+                worldChunkCounts.put(world.getName(), world.getLoadedChunks().length);
             }
         }, 0L, 20L * this.interval);
     }

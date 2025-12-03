@@ -26,6 +26,9 @@ public final class MinecraftServerMonitor extends JavaPlugin {
         if(getConfig().getBoolean("metrics.loaded_chunks.enabled", true))
             metricRegistry.register(new LoadedChunksMetric(this, getConfig().getInt("metrics.loaded_chunks.interval", 1)));
 
+        if(getConfig().getBoolean("metrics.loaded_entities.enabled", true))
+            metricRegistry.register(new LoadedEntitiesMetric(this, getConfig().getInt("metrics.loaded_entities.interval", 1)));
+
         httpServer = new MetricsHttpServer(
                 this,
                 getConfig().getInt("http.port", 9111),

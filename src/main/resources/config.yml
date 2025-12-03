@@ -15,3 +15,6 @@ metrics:
   loaded_chunks:
     enabled: true
     interval: 1
+  loaded_entities:
+    enabled: true
+    interval: 1
