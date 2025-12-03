@@ -1,10 +1,7 @@
 package com.rabbit_company.msm;
 
 import com.rabbit_company.msm.http.MetricsHttpServer;
-import com.rabbit_company.msm.metrics.MetricRegistry;
-import com.rabbit_company.msm.metrics.PlayerCountMetric;
-import com.rabbit_company.msm.metrics.PlayerPingMetric;
-import com.rabbit_company.msm.metrics.TpsMetric;
+import com.rabbit_company.msm.metrics.*;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class MinecraftServerMonitor extends JavaPlugin {
@@ -25,6 +22,9 @@ public final class MinecraftServerMonitor extends JavaPlugin {
 
         if(getConfig().getBoolean("metrics.player_ping.enabled", true))
             metricRegistry.register(new PlayerPingMetric(this, getConfig().getInt("metrics.player_ping.interval", 1)));
+
+        if(getConfig().getBoolean("metrics.loaded_chunks.enabled", true))
+            metricRegistry.register(new LoadedChunksMetric(this, getConfig().getInt("metrics.loaded_chunks.interval", 1)));
 
         httpServer = new MetricsHttpServer(
                 this,

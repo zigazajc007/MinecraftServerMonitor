@@ -12,3 +12,6 @@ metrics:
   player_ping:
     enabled: true
     interval: 1
+  loaded_chunks:
+    enabled: true
+    interval: 1

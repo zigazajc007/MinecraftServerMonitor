@@ -7,7 +7,7 @@ import org.bukkit.scheduler.BukkitTask;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class TpsMetric implements MetricProvider{
+public class TpsMetric implements MetricProvider {
     private final Plugin plugin;
     private final int interval;
     private final Queue<Long> tickTimestamps = new ConcurrentLinkedQueue<>();
