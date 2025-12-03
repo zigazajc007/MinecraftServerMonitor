@@ -5,6 +5,7 @@ import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -15,9 +16,25 @@ public class PlayerCountMetric implements MetricProvider {
 
     private final ConcurrentHashMap<String, Integer> playerCount = new ConcurrentHashMap<>();
 
+    private Method getPlayerCountMethod = null;
+    private boolean isPaper = false;
+
     public PlayerCountMetric(Plugin plugin, int interval) {
         this.plugin = plugin;
         this.interval = interval;
+
+        detectPaper();
+    }
+
+    private void detectPaper() {
+        try {
+            getPlayerCountMethod = World.class.getMethod("getPlayerCount");
+            isPaper = true;
+            plugin.getLogger().info("Detected Paper API - using World#getPlayerCount()");
+        } catch (NoSuchMethodException ignored) {
+            isPaper = false;
+            plugin.getLogger().info("Paper API not found - falling back to getPlayers().size()");
+        }
     }
 
     @Override
@@ -26,7 +43,19 @@ public class PlayerCountMetric implements MetricProvider {
             playerCount.clear();
 
             for(World world : Bukkit.getWorlds()) {
-                playerCount.put(world.getName(), world.getPlayers().size());
+                int count;
+
+                if(isPaper) {
+                    try {
+                        count = (int) getPlayerCountMethod.invoke(world);
+                    }catch (Exception e){
+                        count = world.getPlayers().size();
+                    }
+                }else{
+                    count = world.getPlayers().size();
+                }
+
+                playerCount.put(world.getName(), count);
             }
         }, 0L, 20L * this.interval);
     }
