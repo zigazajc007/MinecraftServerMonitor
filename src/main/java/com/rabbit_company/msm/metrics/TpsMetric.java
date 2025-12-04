@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.lang.reflect.Method;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -19,23 +20,46 @@ public class TpsMetric implements MetricProvider {
 
     private final long startTime = System.currentTimeMillis();
 
+    private Method getTPSMethod = null;
+    private boolean isPaper = false;
+
     private BukkitTask collectTask;
     private BukkitTask calculateTask;
 
     public TpsMetric(Plugin plugin, int interval){
         this.plugin = plugin;
         this.interval = interval;
+
+        detectPaper();
+    }
+
+    private void detectPaper() {
+        try {
+            getTPSMethod = Bukkit.class.getMethod("getTPS");
+            isPaper = true;
+            plugin.getLogger().info("Detected Paper API - using Bukkit#getTPS()");
+        } catch (NoSuchMethodException ignored) {
+            isPaper = false;
+            plugin.getLogger().info("Paper API not found - falling back to manual calculation of TPS");
+        }
     }
 
     @Override
     public void start() {
-        collectTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            tickTimestamps.offer(System.currentTimeMillis());
-        }, 1L, 1L);
+
+        if(!isPaper){
+            collectTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+                tickTimestamps.offer(System.currentTimeMillis());
+            }, 1L, 1L);
+        }
 
         calculateTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            cleanupQueue();
-            calculateTPS();
+            if(isPaper){
+                updateTPSFromPaper();
+            }else{
+                cleanupQueue();
+                calculateTPS();
+            }
         }, 100L, 20L * this.interval);
     }
 
@@ -65,6 +89,22 @@ public class TpsMetric implements MetricProvider {
         tps1m = Math.min(20.0, ticks1m / 60.0);
         tps5m = Math.min(20.0, ticks5m / 300.0);
         tps15m = Math.min(20.0, ticks15m / 900.0);
+    }
+
+    private void updateTPSFromPaper() {
+        try {
+            double[] paperTps = (double[]) getTPSMethod.invoke(null);
+
+            if (paperTps.length >= 1) {
+                tps1m = Math.min(20.0, Math.max(0.0, paperTps[0]));
+            }
+            if (paperTps.length >= 2) {
+                tps5m = Math.min(20.0, Math.max(0.0, paperTps[1]));
+            }
+            if (paperTps.length >= 3) {
+                tps15m = Math.min(20.0, Math.max(0.0, paperTps[2]));
+            }
+        } catch (Exception ignored) {}
     }
 
     @Override
