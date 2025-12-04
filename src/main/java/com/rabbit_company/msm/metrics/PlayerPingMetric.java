@@ -5,16 +5,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
-import java.util.concurrent.atomic.AtomicReference;
-
 public class PlayerPingMetric implements MetricProvider {
     private final Plugin plugin;
     private final int interval;
     private BukkitTask sampleTask;
 
-    private final AtomicReference<Double> minPing = new AtomicReference<>(0.0);
-    private final AtomicReference<Double> avgPing = new AtomicReference<>(0.0);
-    private final AtomicReference<Double> maxPing = new AtomicReference<>(0.0);
+    private volatile double minPing = 0;
+    private volatile double avgPing = 0;
+    private volatile double maxPing = 0;
 
     public PlayerPingMetric(Plugin plugin, int interval){
         this.plugin = plugin;
@@ -28,9 +26,9 @@ public class PlayerPingMetric implements MetricProvider {
             int count = players.length;
 
             if(count == 0){
-                minPing.set(0.0);
-                avgPing.set(0.0);
-                maxPing.set(0.0);
+                minPing = 0;
+                avgPing = 0;
+                maxPing = 0;
             }else{
                 double min = Double.MAX_VALUE;
                 double max = 0;
@@ -43,9 +41,9 @@ public class PlayerPingMetric implements MetricProvider {
                     if (ping > max) max = ping;
                 }
 
-                minPing.set(min);
-                avgPing.set(sum / (double) count);
-                maxPing.set(max);
+                minPing = min;
+                avgPing = sum / (double) count;
+                maxPing = max;
             }
         }, 0L, 20L * this.interval);
     }
@@ -60,16 +58,16 @@ public class PlayerPingMetric implements MetricProvider {
         return "# HELP minecraft_min_player_ping_seconds Minimum player ping in seconds\n" +
                 "# TYPE minecraft_min_player_ping_seconds gauge\n" +
                 "# UNIT minecraft_min_player_ping_seconds seconds\n" +
-                String.format("minecraft_min_player_ping_seconds %.3f\n", minPing.get() / 1000.0) +
+                String.format("minecraft_min_player_ping_seconds %.3f\n", minPing / 1000.0) +
 
                 "# HELP minecraft_avg_player_ping_seconds Average player ping in seconds\n" +
                 "# TYPE minecraft_avg_player_ping_seconds gauge\n" +
                 "# UNIT minecraft_avg_player_ping_seconds seconds\n" +
-                String.format("minecraft_avg_player_ping_seconds %.3f\n", avgPing.get() / 1000.0) +
+                String.format("minecraft_avg_player_ping_seconds %.3f\n", avgPing / 1000.0) +
 
                 "# HELP minecraft_max_player_ping_seconds Maximum player ping in seconds\n" +
                 "# TYPE minecraft_max_player_ping_seconds gauge\n" +
                 "# UNIT minecraft_max_player_ping_seconds seconds\n" +
-                String.format("minecraft_max_player_ping_seconds %.3f\n", maxPing.get() / 1000.0);
+                String.format("minecraft_max_player_ping_seconds %.3f\n", maxPing / 1000.0);
     }
 }

@@ -4,6 +4,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -20,7 +22,7 @@ public class TpsMetric implements MetricProvider {
 
     private final long startTime = System.currentTimeMillis();
 
-    private Method getTPSMethod = null;
+    private MethodHandle getTPSHandle;
     private boolean isPaper = false;
 
     private BukkitTask collectTask;
@@ -35,10 +37,13 @@ public class TpsMetric implements MetricProvider {
 
     private void detectPaper() {
         try {
-            getTPSMethod = Bukkit.class.getMethod("getTPS");
+            Method method = Bukkit.class.getMethod("getTPS");
+            method.setAccessible(true);
+
+            getTPSHandle = MethodHandles.lookup().unreflect(method);
             isPaper = true;
             plugin.getLogger().info("Detected Paper API - using Bukkit#getTPS()");
-        } catch (NoSuchMethodException ignored) {
+        } catch (Throwable ignored) {
             isPaper = false;
             plugin.getLogger().info("Paper API not found - falling back to manual calculation of TPS");
         }
@@ -93,7 +98,7 @@ public class TpsMetric implements MetricProvider {
 
     private void updateTPSFromPaper() {
         try {
-            double[] paperTps = (double[]) getTPSMethod.invoke(null);
+            double[] paperTps = (double[]) getTPSHandle.invoke();
 
             if (paperTps.length >= 1) {
                 tps1m = Math.min(20.0, Math.max(0.0, paperTps[0]));
@@ -104,7 +109,7 @@ public class TpsMetric implements MetricProvider {
             if (paperTps.length >= 3) {
                 tps15m = Math.min(20.0, Math.max(0.0, paperTps[2]));
             }
-        } catch (Exception ignored) {}
+        } catch (Throwable ignored) {}
     }
 
     @Override

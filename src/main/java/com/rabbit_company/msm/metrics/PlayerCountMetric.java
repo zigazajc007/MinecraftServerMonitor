@@ -5,6 +5,8 @@ import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,7 +18,7 @@ public class PlayerCountMetric implements MetricProvider {
 
     private final ConcurrentHashMap<String, Integer> playerCount = new ConcurrentHashMap<>();
 
-    private Method getPlayerCountMethod = null;
+    private MethodHandle getPlayerCountHandle = null;
     private boolean isPaper = false;
 
     public PlayerCountMetric(Plugin plugin, int interval) {
@@ -28,12 +30,25 @@ public class PlayerCountMetric implements MetricProvider {
 
     private void detectPaper() {
         try {
-            getPlayerCountMethod = World.class.getMethod("getPlayerCount");
+            Method method = World.class.getMethod("getPlayerCount");
+            method.setAccessible(true);
+
+            getPlayerCountHandle = MethodHandles.lookup().unreflect(method);
             isPaper = true;
             plugin.getLogger().info("Detected Paper API - using World#getPlayerCount()");
-        } catch (NoSuchMethodException ignored) {
+        } catch (Throwable ignored) {
             isPaper = false;
             plugin.getLogger().info("Paper API not found - falling back to getPlayers().size()");
+        }
+    }
+
+    private int getPlayerCount(World world){
+        if (!isPaper) return world.getPlayers().size();
+
+        try{
+            return (int) getPlayerCountHandle.invoke(world);
+        }catch (Throwable ignored){
+            return world.getPlayers().size();
         }
     }
 
@@ -43,19 +58,7 @@ public class PlayerCountMetric implements MetricProvider {
             playerCount.clear();
 
             for(World world : Bukkit.getWorlds()) {
-                int count;
-
-                if(isPaper) {
-                    try {
-                        count = (int) getPlayerCountMethod.invoke(world);
-                    }catch (Exception e){
-                        count = world.getPlayers().size();
-                    }
-                }else{
-                    count = world.getPlayers().size();
-                }
-
-                playerCount.put(world.getName(), count);
+                playerCount.put(world.getName(), getPlayerCount(world));
             }
         }, 0L, 20L * this.interval);
     }

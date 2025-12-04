@@ -5,6 +5,8 @@ import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,7 +18,7 @@ public class LoadedChunksMetric implements MetricProvider {
 
     private final ConcurrentHashMap<String, Integer> worldChunkCounts = new ConcurrentHashMap<>();
 
-    private Method getChunkCountMethod = null;
+    private MethodHandle getChunkCountHandle = null;
     private boolean isPaper = false;
 
     public LoadedChunksMetric(Plugin plugin, int interval) {
@@ -28,12 +30,25 @@ public class LoadedChunksMetric implements MetricProvider {
 
     private void detectPaper() {
         try {
-            getChunkCountMethod = World.class.getMethod("getChunkCount");
+            Method method = World.class.getMethod("getChunkCount");
+            method.setAccessible(true);
+
+            getChunkCountHandle = MethodHandles.lookup().unreflect(method);
             isPaper = true;
             plugin.getLogger().info("Detected Paper API - using World#getChunkCount()");
-        } catch (NoSuchMethodException ignored) {
+        } catch (Throwable ignored) {
             isPaper = false;
             plugin.getLogger().info("Paper API not found - falling back to getLoadedChunks().length");
+        }
+    }
+
+    private int getChunkCount(World world) {
+        if (!isPaper) return world.getLoadedChunks().length;
+
+        try {
+            return (int) getChunkCountHandle.invoke(world);
+        } catch (Throwable ignored) {
+            return world.getLoadedChunks().length;
         }
     }
 
@@ -43,19 +58,7 @@ public class LoadedChunksMetric implements MetricProvider {
             worldChunkCounts.clear();
 
             for (World world : Bukkit.getWorlds()) {
-                int count;
-
-                if (isPaper) {
-                    try {
-                        count = (int) getChunkCountMethod.invoke(world);
-                    } catch (Exception e) {
-                        count = world.getLoadedChunks().length;
-                    }
-                } else {
-                    count = world.getLoadedChunks().length;
-                }
-
-                worldChunkCounts.put(world.getName(), count);
+                worldChunkCounts.put(world.getName(), getChunkCount(world));
             }
         }, 0L, 20L * this.interval);
     }

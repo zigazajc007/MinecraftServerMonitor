@@ -5,6 +5,8 @@ import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,7 +18,7 @@ public class LoadedEntitiesMetric implements MetricProvider {
 
     private final ConcurrentHashMap<String, Integer> entitiesCounts = new ConcurrentHashMap<>();
 
-    private Method getEntityCountMethod = null;
+    private MethodHandle getEntityCountHandle = null;
     private boolean isPaper = false;
 
     public LoadedEntitiesMetric(Plugin plugin, int interval) {
@@ -28,12 +30,25 @@ public class LoadedEntitiesMetric implements MetricProvider {
 
     private void detectPaper() {
         try {
-            getEntityCountMethod = World.class.getMethod("getEntityCount");
+            Method method = World.class.getMethod("getEntityCount");
+            method.setAccessible(true);
+
+            getEntityCountHandle = MethodHandles.lookup().unreflect(method);
             isPaper = true;
             plugin.getLogger().info("Detected Paper API - using World#getEntityCount()");
-        } catch (NoSuchMethodException ignored) {
+        } catch (Throwable ignored) {
             isPaper = false;
             plugin.getLogger().info("Paper API not found - falling back to getEntities().size()");
+        }
+    }
+
+    private int getEntityCount(World world) {
+        if (!isPaper) return world.getEntities().size();
+
+        try{
+            return (int) getEntityCountHandle.invoke(world);
+        }catch (Throwable ignored){
+            return world.getEntities().size();
         }
     }
 
@@ -43,19 +58,7 @@ public class LoadedEntitiesMetric implements MetricProvider {
             entitiesCounts.clear();
 
             for (World world : Bukkit.getWorlds()) {
-                int count;
-
-                if(isPaper){
-                    try{
-                        count = (int) getEntityCountMethod.invoke(world);
-                    }catch (Exception e){
-                        count = world.getEntities().size();
-                    }
-                } else {
-                    count = world.getEntities().size();
-                }
-
-                entitiesCounts.put(world.getName(), count);
+                entitiesCounts.put(world.getName(), getEntityCount(world));
             }
         }, 0L, 20L * this.interval);
     }
