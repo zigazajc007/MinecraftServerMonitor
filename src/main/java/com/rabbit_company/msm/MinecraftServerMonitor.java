@@ -17,6 +17,9 @@ public final class MinecraftServerMonitor extends JavaPlugin {
         if(getConfig().getBoolean("metrics.tps.enabled", true))
             metricRegistry.register(new TpsMetric(this, getConfig().getInt("metrics.tps.interval", 1)));
 
+        if(getConfig().getBoolean("metrics.memory.enabled", true))
+            metricRegistry.register(new MemoryMetric(this, getConfig().getInt("metrics.memory.interval", 1)));
+
         if(getConfig().getBoolean("metrics.player_count.enabled", true))
             metricRegistry.register(new PlayerCountMetric(this, getConfig().getInt("metrics.player_count.interval", 1)));
 

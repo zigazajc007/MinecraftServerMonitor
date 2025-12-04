@@ -6,6 +6,9 @@ metrics:
   tps:
     enabled: true
     interval: 1
+  memory:
+    enabled: true
+    interval: 1
   player_count:
     enabled: true
     interval: 1
