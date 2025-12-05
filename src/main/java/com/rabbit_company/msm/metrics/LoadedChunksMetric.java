@@ -14,18 +14,20 @@ import java.util.concurrent.ConcurrentHashMap;
 public class LoadedChunksMetric implements MetricProvider {
     private final Plugin plugin;
     private final int interval;
+    private final String countingMethod;
     private BukkitTask sampleTask;
 
-    private final ConcurrentHashMap<String, Integer> worldChunkCounts = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<String, Integer> worldChunkCounts = new ConcurrentHashMap<>();
 
     private MethodHandle getChunkCountHandle = null;
     private boolean isPaper = false;
 
-    public LoadedChunksMetric(Plugin plugin, int interval) {
+    public LoadedChunksMetric(Plugin plugin, int interval, String countingMethod) {
         this.plugin = plugin;
         this.interval = interval;
+        this.countingMethod = countingMethod;
 
-        detectPaper();
+        if (!countingMethod.equalsIgnoreCase("event")) detectPaper();
     }
 
     private void detectPaper() {
@@ -54,6 +56,13 @@ public class LoadedChunksMetric implements MetricProvider {
 
     @Override
     public void start() {
+        if (countingMethod.equalsIgnoreCase("event")){
+            for (World world : Bukkit.getWorlds()) {
+                if (!worldChunkCounts.containsKey(world.getName())) worldChunkCounts.put(world.getName(), 0);
+            }
+            return;
+        }
+
         sampleTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             worldChunkCounts.clear();
 

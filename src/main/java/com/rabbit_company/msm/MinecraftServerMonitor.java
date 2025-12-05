@@ -1,6 +1,8 @@
 package com.rabbit_company.msm;
 
 import com.rabbit_company.msm.http.MetricsHttpServer;
+import com.rabbit_company.msm.listeners.ChunkLoadListener;
+import com.rabbit_company.msm.listeners.ChunkUnloadListener;
 import com.rabbit_company.msm.metrics.*;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -26,8 +28,14 @@ public final class MinecraftServerMonitor extends JavaPlugin {
         if(getConfig().getBoolean("metrics.player_ping.enabled", true))
             metricRegistry.register(new PlayerPingMetric(this, getConfig().getInt("metrics.player_ping.interval", 1)));
 
-        if(getConfig().getBoolean("metrics.loaded_chunks.enabled", true))
-            metricRegistry.register(new LoadedChunksMetric(this, getConfig().getInt("metrics.loaded_chunks.interval", 1)));
+        if(getConfig().getBoolean("metrics.loaded_chunks.enabled", true)){
+            metricRegistry.register(new LoadedChunksMetric(this, getConfig().getInt("metrics.loaded_chunks.interval", 1), getConfig().getString("metrics.loaded_chunks.counting_method", "sampling")));
+
+            if (getConfig().getString("metrics.loaded_chunks.counting_method", "sampling").equalsIgnoreCase("event")){
+                new ChunkLoadListener(this);
+                new ChunkUnloadListener(this);
+            }
+        }
 
         if(getConfig().getBoolean("metrics.loaded_entities.enabled", true))
             metricRegistry.register(new LoadedEntitiesMetric(this, getConfig().getInt("metrics.loaded_entities.interval", 1)));
