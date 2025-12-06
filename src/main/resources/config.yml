@@ -18,7 +18,8 @@ metrics:
   loaded_chunks:
     enabled: true
     interval: 1
-    counting_method: "sampling"  # Options: "sampling" or "event"
+    counting_method: "event"  # Options: "event" or "sampling"
   loaded_entities:
     enabled: true
     interval: 1
+    counting_method: "event"  # Options: "event" or "sampling"

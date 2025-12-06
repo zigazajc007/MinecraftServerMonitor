@@ -5,60 +5,37 @@ import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class LoadedEntitiesMetric implements MetricProvider {
     private final Plugin plugin;
     private final int interval;
+    private final String countingMethod;
     private BukkitTask sampleTask;
 
-    private final ConcurrentHashMap<String, Integer> entitiesCounts = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<String, Integer> entitiesCounts = new ConcurrentHashMap<>();
 
-    private MethodHandle getEntityCountHandle = null;
-    private boolean isPaper = false;
-
-    public LoadedEntitiesMetric(Plugin plugin, int interval) {
+    public LoadedEntitiesMetric(Plugin plugin, int interval, String countingMethod) {
         this.plugin = plugin;
         this.interval = interval;
-
-        detectPaper();
-    }
-
-    private void detectPaper() {
-        try {
-            Method method = World.class.getMethod("getEntityCount");
-            method.setAccessible(true);
-
-            getEntityCountHandle = MethodHandles.lookup().unreflect(method);
-            isPaper = true;
-            plugin.getLogger().info("Detected Paper API - using World#getEntityCount()");
-        } catch (Throwable ignored) {
-            isPaper = false;
-            plugin.getLogger().info("Paper API not found - falling back to getEntities().size()");
-        }
-    }
-
-    private int getEntityCount(World world) {
-        if (!isPaper) return world.getEntities().size();
-
-        try{
-            return (int) getEntityCountHandle.invoke(world);
-        }catch (Throwable ignored){
-            return world.getEntities().size();
-        }
+        this.countingMethod = countingMethod;
     }
 
     @Override
     public void start() {
+        if (countingMethod.equalsIgnoreCase("event")){
+            for (World world : Bukkit.getWorlds()) {
+                if (!entitiesCounts.containsKey(world.getName())) entitiesCounts.put(world.getName(), 0);
+            }
+            return;
+        }
+
         sampleTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             entitiesCounts.clear();
 
             for (World world : Bukkit.getWorlds()) {
-                entitiesCounts.put(world.getName(), getEntityCount(world));
+                entitiesCounts.put(world.getName(), world.getEntityCount());
             }
         }, 0L, 20L * this.interval);
     }
@@ -77,7 +54,7 @@ public class LoadedEntitiesMetric implements MetricProvider {
 
         for (Map.Entry<String, Integer> entry : entitiesCounts.entrySet()) {
             String worldName = entry.getKey();
-            int loadedChunks = entry.getValue();
+            int loadedEntities = entry.getValue();
 
             // Escape world name for Prometheus label (replace problematic characters)
             String escapedWorldName = worldName.replace("\"", "\\\"")
@@ -87,7 +64,7 @@ public class LoadedEntitiesMetric implements MetricProvider {
             builder.append(String.format(
                     "minecraft_loaded_entities{world=\"%s\"} %d\n",
                     escapedWorldName,
-                    loadedChunks
+                    loadedEntities
             ));
         }
 
