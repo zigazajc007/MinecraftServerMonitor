@@ -23,3 +23,4 @@ metrics:
     enabled: true
     interval: 1
     counting_method: "event"  # Options: "event" or "sampling"
+    count_types: false

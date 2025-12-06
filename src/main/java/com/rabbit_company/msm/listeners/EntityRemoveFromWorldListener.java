@@ -20,6 +20,16 @@ public class EntityRemoveFromWorldListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onEntityRemoveFromWorld(final EntityRemoveFromWorldEvent e) {
+        String world = e.getEntity().getWorld().getName();
+        String type = e.getEntityType().name();
+
         LoadedEntitiesMetric.entitiesCounts.computeIfPresent(e.getEntity().getWorld().getName(), (key, value) -> Math.max(0, value - 1));
+
+        LoadedEntitiesMetric.entityTypesCounts.computeIfPresent(world, (w, typeMap) -> {
+            typeMap.computeIfPresent(type, (t, count) ->
+                    (count <= 1) ? null : count - 1
+            );
+            return typeMap.isEmpty() ? null : typeMap;
+        });
     }
 }

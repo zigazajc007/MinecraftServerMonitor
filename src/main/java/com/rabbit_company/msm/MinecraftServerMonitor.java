@@ -34,7 +34,7 @@ public final class MinecraftServerMonitor extends JavaPlugin {
             metricRegistry.register(new LoadedChunksMetric(this, getConfig().getInt("metrics.loaded_chunks.interval", 1), getConfig().getString("metrics.loaded_chunks.counting_method", "sampling")));
 
         if(getConfig().getBoolean("metrics.loaded_entities.enabled", true))
-            metricRegistry.register(new LoadedEntitiesMetric(this, getConfig().getInt("metrics.loaded_entities.interval", 1),  getConfig().getString("metrics.loaded_entities.counting_method", "sampling")));
+            metricRegistry.register(new LoadedEntitiesMetric(this, getConfig().getInt("metrics.loaded_entities.interval", 1), getConfig().getString("metrics.loaded_entities.counting_method", "sampling"), getConfig().getBoolean("metrics.loaded_entities.count_types", false)));
 
         if ((getConfig().getBoolean("metrics.loaded_chunks.enabled", true) && getConfig().getString("metrics.loaded_chunks.counting_method", "sampling").equalsIgnoreCase("event"))) {
             new ChunkLoadListener(this);

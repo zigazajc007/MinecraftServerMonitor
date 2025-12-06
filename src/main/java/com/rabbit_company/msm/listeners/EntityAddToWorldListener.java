@@ -8,6 +8,8 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 public class EntityAddToWorldListener implements Listener {
 
     private final Plugin plugin;
@@ -20,6 +22,10 @@ public class EntityAddToWorldListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onEntityAddToWorld(final EntityAddToWorldEvent e) {
-        LoadedEntitiesMetric.entitiesCounts.compute(e.getWorld().getName(), (key, value) -> (value == null) ? 1 : value + 1);
+        String world = e.getWorld().getName();
+        String entity = e.getEntity().getType().name();
+
+        LoadedEntitiesMetric.entitiesCounts.compute(world, (key, value) -> (value == null) ? 1 : value + 1);
+        LoadedEntitiesMetric.entityTypesCounts.computeIfAbsent(world, w -> new ConcurrentHashMap<>()).compute(entity, (key, value) -> (value == null) ? 1 : value + 1);
     }
 }
