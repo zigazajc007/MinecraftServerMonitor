@@ -13,8 +13,8 @@ public class Reload implements CommandExecutor {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
-        if(sender instanceof Player player) {
-            player.sendMessage(Component.text("Only console is allowed to execute this command!").color(TextColor.color(0xFF0000)));
+        if((sender instanceof Player player) && !player.isOp()) {
+            player.sendMessage(Component.text("You do not have permission to execute this command!").color(TextColor.color(0xFF0000)));
             return true;
         }
 
