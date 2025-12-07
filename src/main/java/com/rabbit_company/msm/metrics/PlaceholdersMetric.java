@@ -114,4 +114,9 @@ public class PlaceholdersMetric implements MetricProvider {
 
         return sb.toString();
     }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
 }

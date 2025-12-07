@@ -10,20 +10,22 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class LoadedChunksMetric implements MetricProvider {
     private final Plugin plugin;
-    private final int interval;
-    private final String countingMethod;
+    private boolean enabled = false;
     private BukkitTask sampleTask;
 
     public static final ConcurrentHashMap<String, Integer> worldChunkCounts = new ConcurrentHashMap<>();
 
-    public LoadedChunksMetric(Plugin plugin, int interval, String countingMethod) {
+    public LoadedChunksMetric(Plugin plugin) {
         this.plugin = plugin;
-        this.interval = interval;
-        this.countingMethod = countingMethod;
     }
 
     @Override
     public void start() {
+        if(!plugin.getConfig().getBoolean("metrics.loaded_chunks.enabled", true)) return;
+
+        int interval = plugin.getConfig().getInt("metrics.loaded_chunks.interval", 1);
+        String countingMethod = plugin.getConfig().getString("metrics.loaded_chunks.counting_method", "sampling");
+
         if (countingMethod.equalsIgnoreCase("event")){
             for (World world : Bukkit.getWorlds()) {
                 if (!worldChunkCounts.containsKey(world.getName())) worldChunkCounts.put(world.getName(), 0);
@@ -37,12 +39,16 @@ public class LoadedChunksMetric implements MetricProvider {
             for (World world : Bukkit.getWorlds()) {
                 worldChunkCounts.put(world.getName(), world.getChunkCount());
             }
-        }, 0L, 20L * this.interval);
+        }, 0L, 20L * interval);
+
+        enabled = true;
     }
 
     @Override
     public void stop() {
+        enabled = false;
         if (sampleTask != null) sampleTask.cancel();
+        sampleTask = null;
     }
 
     @Override
@@ -69,5 +75,10 @@ public class LoadedChunksMetric implements MetricProvider {
         }
 
         return builder.toString();
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return enabled;
     }
 }

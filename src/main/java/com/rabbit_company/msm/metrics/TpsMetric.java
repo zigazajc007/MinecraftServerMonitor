@@ -6,7 +6,7 @@ import org.bukkit.scheduler.BukkitTask;
 
 public class TpsMetric implements MetricProvider {
     private final Plugin plugin;
-    private final int interval;
+    private boolean enabled = false;
 
     private volatile double tps1m = 20.0;
     private volatile double tps5m = 20.0;
@@ -14,14 +14,17 @@ public class TpsMetric implements MetricProvider {
 
     private BukkitTask calculateTask;
 
-    public TpsMetric(Plugin plugin, int interval){
+    public TpsMetric(Plugin plugin){
         this.plugin = plugin;
-        this.interval = interval;
     }
 
     @Override
     public void start() {
-        calculateTask = Bukkit.getScheduler().runTaskTimer(plugin, this::updateTPSFromPaper, 100L, 20L * this.interval);
+        if (!plugin.getConfig().getBoolean("metrics.tps.enabled", true)) return;
+
+        int interval = plugin.getConfig().getInt("metrics.tps.interval", 1);
+        calculateTask = Bukkit.getScheduler().runTaskTimer(plugin, this::updateTPSFromPaper, 100L, 20L * interval);
+        enabled = true;
     }
 
     private void updateTPSFromPaper() {
@@ -40,7 +43,9 @@ public class TpsMetric implements MetricProvider {
 
     @Override
     public void stop() {
+        enabled = false;
         if (calculateTask != null) calculateTask.cancel();
+        calculateTask = null;
     }
 
     @Override
@@ -51,5 +56,10 @@ public class TpsMetric implements MetricProvider {
                 String.format("minecraft_tps{interval=\"1m\"} %.2f\n", tps1m) +
                 String.format("minecraft_tps{interval=\"5m\"} %.2f\n", tps5m) +
                 String.format("minecraft_tps{interval=\"15m\"} %.2f\n", tps15m);
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return enabled;
     }
 }

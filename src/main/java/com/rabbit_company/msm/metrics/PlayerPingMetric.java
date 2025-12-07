@@ -7,20 +7,23 @@ import org.bukkit.scheduler.BukkitTask;
 
 public class PlayerPingMetric implements MetricProvider {
     private final Plugin plugin;
-    private final int interval;
+    private boolean enabled = false;
     private BukkitTask sampleTask;
 
     private volatile double minPing = 0;
     private volatile double avgPing = 0;
     private volatile double maxPing = 0;
 
-    public PlayerPingMetric(Plugin plugin, int interval){
+    public PlayerPingMetric(Plugin plugin){
         this.plugin = plugin;
-        this.interval = interval;
     }
 
     @Override
     public void start() {
+        if(!plugin.getConfig().getBoolean("metrics.player_ping.enabled", true)) return;
+
+        int interval = plugin.getConfig().getInt("metrics.player_ping.interval", 1);
+
         sampleTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             Player[] players = Bukkit.getOnlinePlayers().toArray(new Player[0]);
             int count = players.length;
@@ -45,12 +48,16 @@ public class PlayerPingMetric implements MetricProvider {
                 avgPing = sum / (double) count;
                 maxPing = max;
             }
-        }, 0L, 20L * this.interval);
+        }, 0L, 20L * interval);
+
+        enabled = true;
     }
 
     @Override
     public void stop() {
+        enabled = false;
         if (sampleTask != null) sampleTask.cancel();
+        sampleTask = null;
     }
 
     @Override
@@ -69,5 +76,10 @@ public class PlayerPingMetric implements MetricProvider {
                 "# TYPE minecraft_max_player_ping_seconds gauge\n" +
                 "# UNIT minecraft_max_player_ping_seconds seconds\n" +
                 String.format("minecraft_max_player_ping_seconds %.3f\n", maxPing / 1000.0);
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return enabled;
     }
 }

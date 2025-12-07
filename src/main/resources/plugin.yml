@@ -6,3 +6,8 @@ authors: [ RabbitCompany ]
 description: Simple web-exposed metrics endpoint (OpenMetrics) for Prometheus scraping.
 website: https://rabbit-company.com
 softdepend: ["PlaceholderAPI"]
+commands:
+  reload:
+    usage: /<command>
+    aliases: [ msm ]
+    description: Reload configuration of MinecraftServerMonitor plugin

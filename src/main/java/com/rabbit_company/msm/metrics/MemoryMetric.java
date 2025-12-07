@@ -6,30 +6,37 @@ import org.bukkit.scheduler.BukkitTask;
 
 public class MemoryMetric implements MetricProvider {
     private final Plugin plugin;
-    private final int interval;
+    private boolean enabled = false;
     private BukkitTask sampleTask;
 
     private volatile long usedMemory = 0;
     private volatile long totalMemory = 0;
     private volatile long maxMemory = 0;
 
-    public MemoryMetric(Plugin plugin, int interval) {
+    public MemoryMetric(Plugin plugin) {
         this.plugin = plugin;
-        this.interval = interval;
     }
 
     @Override
     public void start() {
+        if(!plugin.getConfig().getBoolean("metrics.memory.enabled", true)) return;
+
+        int interval = plugin.getConfig().getInt("metrics.memory.interval", 1);
+
         sampleTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             usedMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
             totalMemory = Runtime.getRuntime().totalMemory();
             maxMemory = Runtime.getRuntime().maxMemory();
-        }, 0L, 20L * this.interval);
+        }, 0L, 20L * interval);
+
+        enabled = true;
     }
 
     @Override
     public void stop() {
+        enabled = false;
         if (sampleTask != null ) sampleTask.cancel();
+        sampleTask = null;
     }
 
     @Override
@@ -48,5 +55,10 @@ public class MemoryMetric implements MetricProvider {
                 "# TYPE minecraft_memory_max_bytes gauge\n" +
                 "# UNIT minecraft_memory_max_bytes bytes\n" +
                 String.format("minecraft_memory_max_bytes %d\n", maxMemory);
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return enabled;
     }
 }

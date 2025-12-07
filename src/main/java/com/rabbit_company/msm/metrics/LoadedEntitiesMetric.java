@@ -11,27 +11,31 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class LoadedEntitiesMetric implements MetricProvider {
     private final Plugin plugin;
-    private final int interval;
-    private final String countingMethod;
-    private final boolean countTypes;
+    private boolean enabled = false;
     private BukkitTask sampleTask;
+
+    private boolean countTypes = false;
 
     public static final ConcurrentHashMap<String, Integer> entitiesCounts = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<String, ConcurrentHashMap<String, Integer>> entityTypesCounts = new ConcurrentHashMap<>();
 
-    public LoadedEntitiesMetric(Plugin plugin, int interval, String countingMethod, boolean countTypes) {
+    public LoadedEntitiesMetric(Plugin plugin) {
         this.plugin = plugin;
-        this.interval = interval;
-        this.countingMethod = countingMethod;
-        this.countTypes = countTypes;
     }
 
     @Override
     public void start() {
+        if(!plugin.getConfig().getBoolean("metrics.loaded_entities.enabled", true)) return;
+
+        int interval = plugin.getConfig().getInt("metrics.loaded_entities.interval", 1);
+        String countingMethod = plugin.getConfig().getString("metrics.loaded_entities.counting_method", "sampling");
+        countTypes = plugin.getConfig().getBoolean("metrics.loaded_entities.count_types", false);
+
         if (countingMethod.equalsIgnoreCase("event")){
             for (World world : Bukkit.getWorlds()) {
                 if (!entitiesCounts.containsKey(world.getName())) entitiesCounts.put(world.getName(), 0);
             }
+            enabled = true;
             return;
         }
 
@@ -50,12 +54,16 @@ public class LoadedEntitiesMetric implements MetricProvider {
                     entitiesCounts.put(world.getName(), world.getEntityCount());
                 }
             }
-        }, 0L, 20L * this.interval);
+        }, 0L, 20L * interval);
+
+        enabled = true;
     }
 
     @Override
     public void stop() {
+        enabled = false;
         if (sampleTask != null) sampleTask.cancel();
+        sampleTask = null;
     }
 
     @Override
@@ -103,5 +111,10 @@ public class LoadedEntitiesMetric implements MetricProvider {
         }
 
         return builder.toString();
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return enabled;
     }
 }

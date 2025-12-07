@@ -11,8 +11,8 @@ public class MetricsHandler implements HttpHandler {
     private final String bearer;
     private final MetricRegistry registry;
 
-    public MetricsHandler(String bearer, MetricRegistry registry){
-        this.bearer = bearer;
+    public MetricsHandler(String token, MetricRegistry registry){
+        this.bearer = "Bearer " + token;
         this.registry = registry;
     }
 

@@ -8,20 +8,19 @@ import java.net.InetSocketAddress;
 
 public class MetricsHttpServer {
     private final Plugin plugin;
-    private final int port;
-    private final String token;
     private final MetricRegistry registry;
     private HttpServer server;
 
-    public MetricsHttpServer(Plugin plugin, int port, String token, MetricRegistry registry){
+    public MetricsHttpServer(Plugin plugin, MetricRegistry registry){
         this.plugin = plugin;
-        this.port = port;
-        this.token = "Bearer " + token;
         this.registry = registry;
     }
 
     public void start(){
         try {
+            int port = plugin.getConfig().getInt("http.port", 9111);
+            String token = plugin.getConfig().getString("http.token", "changeme");
+
             server = HttpServer.create(new InetSocketAddress(port), 0);
             server.createContext("/metrics", new MetricsHandler(token, registry));
             server.setExecutor(null);
@@ -34,5 +33,6 @@ public class MetricsHttpServer {
 
     public void stop(){
         if(server != null) server.stop(0);
+        server = null;
     }
 }

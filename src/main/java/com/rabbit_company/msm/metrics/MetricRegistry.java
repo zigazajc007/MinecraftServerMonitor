@@ -20,7 +20,11 @@ public class MetricRegistry {
         return sb.toString();
     }
 
-    public void shutdown() {
+    public void start() {
+        for (MetricProvider p : providers) p.start();
+    }
+
+    public void stop() {
         for (MetricProvider p : providers) p.stop();
     }
 }
