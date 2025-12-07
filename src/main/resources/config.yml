@@ -24,3 +24,18 @@ metrics:
     interval: 1
     counting_method: "event"  # Options: "event" or "sampling"
     count_types: false
+
+  # Custom placeholder API metrics
+  custom:
+    minecraft_server_uptime:
+      description: "Minecraft Server Uptime"
+      type: "gauge"
+      placeholder: "%server_online%"
+      interval: 1
+      per_player: false
+    minecraft_mob_kills:
+      description: "Amount of killed mobs per player"
+      type: "gauge"
+      placeholder: "%statistic_mob_kills%"
+      interval: 1
+      per_player: true

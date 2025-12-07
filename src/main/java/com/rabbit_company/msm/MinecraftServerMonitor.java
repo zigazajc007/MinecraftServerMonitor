@@ -6,6 +6,7 @@ import com.rabbit_company.msm.listeners.ChunkUnloadListener;
 import com.rabbit_company.msm.listeners.EntityRemoveFromWorldListener;
 import com.rabbit_company.msm.listeners.EntityAddToWorldListener;
 import com.rabbit_company.msm.metrics.*;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class MinecraftServerMonitor extends JavaPlugin {
@@ -44,6 +45,13 @@ public final class MinecraftServerMonitor extends JavaPlugin {
         if(getConfig().getBoolean("metrics.loaded_entities.enabled", true) && getConfig().getString("metrics.loaded_entities.counting_method", "sampling").equalsIgnoreCase("event")){
             new EntityAddToWorldListener(this);
             new EntityRemoveFromWorldListener(this);
+        }
+
+        if(Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            getLogger().info("PlaceholderAPI plugin detected. Enabling custom metrics...");
+            metricRegistry.register(new PlaceholdersMetric(this));
+        } else {
+            getLogger().info("PlaceholderAPI plugin not detected. Custom metrics have been disabled.");
         }
 
         httpServer = new MetricsHttpServer(

@@ -5,3 +5,4 @@ api-version: 1.13
 authors: [ RabbitCompany ]
 description: Simple web-exposed metrics endpoint (OpenMetrics) for Prometheus scraping.
 website: https://rabbit-company.com
+softdepend: ["PlaceholderAPI"]
